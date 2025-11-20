@@ -1,73 +1,184 @@
-# React + TypeScript + Vite
+# Lab System Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Сучасний фронтенд додаток для системи управління лабораторіями, побудований з використанням React, TypeScript та Vite.
 
-Currently, two official plugins are available:
+## 🚀 Технології
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **React 19** - бібліотека для побудови UI
+- **TypeScript** - типізована версія JavaScript
+- **Vite** - швидкий інструмент збірки
+- **React Router** - маршрутизація
+- **Axios** - HTTP клієнт
+- **CSS3** - стилізація
 
-## React Compiler
+## 📋 Функціональність
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Для всіх користувачів:
+- ✅ Реєстрація та автентифікація
+- ✅ Перегляд лабораторій
+- ✅ Перегляд обладнання
+- ✅ Створення резервацій лабораторій
+- ✅ Перегляд власних резервацій
 
-## Expanding the ESLint configuration
+### Для адміністраторів:
+- ✅ Управління лабораторіями (створення, редагування, видалення)
+- ✅ Управління обладнанням (створення, редагування, видалення)
+- ✅ Перегляд всіх резервацій
+- ✅ Підтвердження/відхилення резервацій
+- ✅ Повний контроль над системою
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🛠️ Встановлення
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Передумови
+- Node.js 18+
+- npm або yarn
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Кроки встановлення
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. Клонування репозиторію:
+```bash
+git clone https://github.com/0verlooking/lab-system-frontend.git
+cd lab-system-frontend
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+2. Встановлення залежностей:
+```bash
+npm install
 ```
+
+3. Налаштування змінних середовища:
+```bash
+cp .env.example .env
+```
+
+Відредагуйте `.env` файл:
+```env
+VITE_API_URL=http://localhost:8080/api
+NODE_ENV=development
+```
+
+4. Запуск у режимі розробки:
+```bash
+npm run dev
+```
+
+Додаток буде доступний за адресою: `http://localhost:5173`
+
+## 🏗️ Структура проекту
+
+```
+src/
+├── api/              # API клієнти та сервіси
+│   ├── http.ts       # Налаштування Axios
+│   ├── authApi.ts    # Автентифікація
+│   ├── labsApi.ts    # Лабораторії
+│   ├── equipmentApi.ts  # Обладнання
+│   └── reservationsApi.ts  # Резервації
+├── components/       # Компоненти React
+│   ├── layout/       # Компоненти макету
+│   └── routing/      # Маршрутизація
+├── context/          # React Context
+│   └── AuthContext.tsx  # Контекст автентифікації
+├── pages/            # Сторінки додатку
+│   ├── LoginPage.tsx
+│   ├── RegisterPage.tsx
+│   ├── LabsPage.tsx
+│   ├── EquipmentPage.tsx
+│   └── ReservationsPage.tsx
+├── router/           # Налаштування роутера
+├── types/            # TypeScript типи
+├── App.tsx           # Головний компонент
+└── main.tsx          # Точка входу
+```
+
+## 🐳 Docker
+
+### Збірка образу:
+```bash
+docker build -t lab-system-frontend .
+```
+
+### Запуск контейнера:
+```bash
+docker run -p 3000:80 lab-system-frontend
+```
+
+### Docker Compose:
+```bash
+docker-compose up -d
+```
+
+## 📦 Build для продакшну
+
+```bash
+npm run build
+```
+
+Зібрані файли будуть у папці `dist/`
+
+## 🔧 Доступні команди
+
+- `npm run dev` - запуск у режимі розробки
+- `npm run build` - збірка для продакшну
+- `npm run preview` - попередній перегляд продакшн збірки
+- `npm run lint` - перевірка коду з ESLint
+
+## 🔐 Автентифікація
+
+Система використовує JWT токени для автентифікації. Токен зберігається у localStorage і автоматично додається до всіх API запитів.
+
+### Тестові облікові записи:
+- **Адміністратор**: `admin` / `admin123`
+- **Студент**: `student1` / `password123`
+
+## 🌐 API Endpoints
+
+Фронтенд взаємодіє з наступними API endpoints:
+
+### Автентифікація
+- `POST /api/auth/login` - вхід
+- `POST /api/auth/register` - реєстрація
+
+### Лабораторії
+- `GET /api/labs` - список лабораторій
+- `POST /api/labs` - створення (admin)
+- `PUT /api/labs/:id` - оновлення (admin)
+- `DELETE /api/labs/:id` - видалення (admin)
+
+### Обладнання
+- `GET /api/equipment` - список обладнання
+- `GET /api/equipment/lab/:labId` - обладнання лабораторії
+- `POST /api/equipment` - створення (admin)
+- `PUT /api/equipment/:id` - оновлення (admin)
+- `DELETE /api/equipment/:id` - видалення (admin)
+
+### Резервації
+- `GET /api/reservations` - всі резервації (admin)
+- `GET /api/reservations/my` - мої резервації
+- `POST /api/reservations` - створення
+- `PUT /api/reservations/:id/status` - оновлення статусу (admin)
+- `DELETE /api/reservations/:id` - видалення
+
+## 🎨 UI/UX Features
+
+- ✨ Сучасний responsive дизайн
+- 🎯 Інтуїтивний інтерфейс
+- ⚡ Швидка навігація
+- 🔄 Loading states
+- ❌ Error handling
+- ✅ Success notifications
+- 🎭 Role-based UI
+
+## 🔗 Backend Integration
+
+Цей фронтенд працює з backend системою:
+- Repository: https://github.com/0verlooking/lab-system-backend
+- Stack: Spring Boot 3, PostgreSQL, JWT
+
+## 📝 Ліцензія
+
+MIT License
+
+## 👥 Автор
+
+Проект виконано в рамках курсової роботи

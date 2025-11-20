@@ -1,20 +1,28 @@
-import http from "./http";
+import http from './http';
+import type { Lab, LabCreateRequest } from '../types/Lab';
 
-export const fetchLabs = async () => {
-    const res = await http.get("/labs");
-    return res.data;
-};
+export const labsApi = {
+    getAll: async (): Promise<Lab[]> => {
+        const res = await http.get<Lab[]>('/labs');
+        return res.data;
+    },
 
-export const createLab = async (lab) => {
-    const res = await http.post("/labs", lab);
-    return res.data;
-};
+    getById: async (id: number): Promise<Lab> => {
+        const res = await http.get<Lab>(`/labs/${id}`);
+        return res.data;
+    },
 
-export const deleteLab = async (id) => {
-    await http.delete(`/labs/${id}`);
-};
+    create: async (lab: LabCreateRequest): Promise<Lab> => {
+        const res = await http.post<Lab>('/labs', lab);
+        return res.data;
+    },
 
-export const updateLab = async (id, lab) => {
-    const res = await http.put(`/labs/${id}`, lab);
-    return res.data;
+    update: async (id: number, lab: LabCreateRequest): Promise<Lab> => {
+        const res = await http.put<Lab>(`/labs/${id}`, lab);
+        return res.data;
+    },
+
+    delete: async (id: number): Promise<void> => {
+        await http.delete(`/labs/${id}`);
+    },
 };

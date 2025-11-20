@@ -1,50 +1,291 @@
 import React, { useEffect, useState } from 'react';
 import { equipmentApi } from '../api/equipmentApi';
-import type {Equipment} from '../types/Equipment';
+import { labsApi } from '../api/labsApi';
+import type { Equipment } from '../types/Equipment';
+import type { Lab } from '../types/Lab';
+import { useAuth } from '../context/AuthContext';
 
 export const EquipmentPage: React.FC = () => {
+    const { role } = useAuth();
     const [equipment, setEquipment] = useState<Equipment[]>([]);
-    const [error, setError] = useState<string | null>(null);
+    const [labs, setLabs] = useState<Lab[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [showForm, setShowForm] = useState(false);
+
+    // Form state
+    const [name, setName] = useState('');
+    const [inventoryNumber, setInventoryNumber] = useState('');
+    const [status, setStatus] = useState('AVAILABLE');
+    const [labId, setLabId] = useState('');
+    const [editingId, setEditingId] = useState<number | null>(null);
+
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const [equipmentData, labsData] = await Promise.all([
+                equipmentApi.getAll(),
+                labsApi.getAll(),
+            ]);
+            setEquipment(equipmentData);
+            setLabs(labsData);
+            setError('');
+        } catch (err: any) {
+            setError('Помилка завантаження даних');
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const load = async () => {
-            try {
-                const data = await equipmentApi.getAll();
-                setEquipment(data);
-            } catch {
-                setError('Не вдалося завантажити обладнання');
-            }
-        };
-        load();
+        loadData();
     }, []);
 
-    return (
-        <div style={{ padding: 16 }}>
-            <h2>Equipment</h2>
-            {error && <p style={{ color: 'red' }}>{error}</p>}
+    const resetForm = () => {
+        setName('');
+        setInventoryNumber('');
+        setStatus('AVAILABLE');
+        setLabId('');
+        setEditingId(null);
+        setShowForm(false);
+    };
 
-            <table border={1} cellPadding={4} cellSpacing={0}>
-                <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Inventory #</th>
-                    <th>Status</th>
-                    <th>Lab ID</th>
-                </tr>
-                </thead>
-                <tbody>
-                {equipment.map((e) => (
-                    <tr key={e.id}>
-                        <td>{e.id}</td>
-                        <td>{e.name}</td>
-                        <td>{e.inventoryNumber}</td>
-                        <td>{e.status}</td>
-                        <td>{e.labId}</td>
-                    </tr>
-                ))}
-                </tbody>
-            </table>
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+
+        try {
+            const equipmentData = {
+                name,
+                inventoryNumber,
+                status,
+                labId: labId ? parseInt(labId) : undefined,
+            };
+
+            if (editingId) {
+                await equipmentApi.update(editingId, equipmentData);
+            } else {
+                await equipmentApi.create(equipmentData);
+            }
+
+            await loadData();
+            resetForm();
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Помилка збереження обладнання');
+        }
+    };
+
+    const handleEdit = (item: Equipment) => {
+        setName(item.name);
+        setInventoryNumber(item.inventoryNumber);
+        setStatus(item.status);
+        setLabId(item.labId?.toString() || '');
+        setEditingId(item.id);
+        setShowForm(true);
+    };
+
+    const handleDelete = async (id: number) => {
+        if (!confirm('Ви впевнені, що хочете видалити це обладнання?')) {
+            return;
+        }
+
+        try {
+            await equipmentApi.delete(id);
+            await loadData();
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Помилка видалення обладнання');
+        }
+    };
+
+    const getStatusBadgeClass = (status: string) => {
+        switch (status) {
+            case 'AVAILABLE':
+                return 'badge badge-available';
+            case 'IN_USE':
+                return 'badge badge-in-use';
+            case 'MAINTENANCE':
+                return 'badge badge-maintenance';
+            default:
+                return 'badge';
+        }
+    };
+
+    const getLabName = (labId?: number) => {
+        if (!labId) return '-';
+        const lab = labs.find((l) => l.id === labId);
+        return lab ? lab.name : `Lab #${labId}`;
+    };
+
+    const isAdmin = role === 'ADMIN';
+
+    return (
+        <div className="page">
+            <div className="page-header">
+                <h1 className="page-title">Обладнання</h1>
+                <p className="page-description">Управління обладнанням лабораторій</p>
+            </div>
+
+            {error && (
+                <div className="alert alert-error">
+                    {error}
+                </div>
+            )}
+
+            {isAdmin && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => setShowForm(!showForm)}
+                    >
+                        {showForm ? 'Скасувати' : 'Додати обладнання'}
+                    </button>
+                </div>
+            )}
+
+            {showForm && isAdmin && (
+                <div className="card" style={{ marginBottom: '2rem' }}>
+                    <h2 className="card-header">
+                        {editingId ? 'Редагування обладнання' : 'Нове обладнання'}
+                    </h2>
+                    <form onSubmit={handleSubmit} className="form">
+                        <div className="form-group">
+                            <label className="form-label">Назва</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Наприклад: Мікроскоп"
+                                required
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Інвентарний номер</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={inventoryNumber}
+                                onChange={(e) => setInventoryNumber(e.target.value)}
+                                placeholder="Наприклад: INV-001"
+                                required
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Статус</label>
+                            <select
+                                className="form-select"
+                                value={status}
+                                onChange={(e) => setStatus(e.target.value)}
+                                required
+                            >
+                                <option value="AVAILABLE">Доступне</option>
+                                <option value="IN_USE">Використовується</option>
+                                <option value="MAINTENANCE">На обслуговуванні</option>
+                            </select>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Лабораторія</label>
+                            <select
+                                className="form-select"
+                                value={labId}
+                                onChange={(e) => setLabId(e.target.value)}
+                            >
+                                <option value="">Не призначено</option>
+                                {labs.map((lab) => (
+                                    <option key={lab.id} value={lab.id}>
+                                        {lab.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="btn-group">
+                            <button type="submit" className="btn btn-primary">
+                                {editingId ? 'Оновити' : 'Створити'}
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-secondary"
+                                onClick={resetForm}
+                            >
+                                Скасувати
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            {loading ? (
+                <div className="loading">
+                    <div className="spinner"></div>
+                </div>
+            ) : equipment.length === 0 ? (
+                <div className="empty-state">
+                    <div className="empty-state-icon">🔧</div>
+                    <h2 className="empty-state-title">Немає обладнання</h2>
+                    <p className="empty-state-description">
+                        {isAdmin
+                            ? 'Додайте перше обладнання, щоб почати роботу'
+                            : 'Обладнання поки що не додане'}
+                    </p>
+                </div>
+            ) : (
+                <div className="table-container">
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Назва</th>
+                                <th>Інв. номер</th>
+                                <th>Статус</th>
+                                <th>Лабораторія</th>
+                                {isAdmin && <th>Дії</th>}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {equipment.map((item) => (
+                                <tr key={item.id}>
+                                    <td>{item.id}</td>
+                                    <td>{item.name}</td>
+                                    <td>{item.inventoryNumber}</td>
+                                    <td>
+                                        <span className={getStatusBadgeClass(item.status)}>
+                                            {item.status === 'AVAILABLE'
+                                                ? 'Доступне'
+                                                : item.status === 'IN_USE'
+                                                ? 'Використовується'
+                                                : 'На обслуговуванні'}
+                                        </span>
+                                    </td>
+                                    <td>{getLabName(item.labId)}</td>
+                                    {isAdmin && (
+                                        <td>
+                                            <div className="btn-group">
+                                                <button
+                                                    className="btn btn-sm btn-secondary"
+                                                    onClick={() => handleEdit(item)}
+                                                >
+                                                    Редагувати
+                                                </button>
+                                                <button
+                                                    className="btn btn-sm btn-danger"
+                                                    onClick={() => handleDelete(item.id)}
+                                                >
+                                                    Видалити
+                                                </button>
+                                            </div>
+                                        </td>
+                                    )}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     );
 };
