@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { equipmentApi } from '../api/equipmentApi';
 import { labsApi } from '../api/labsApi';
-import { Equipment, EquipmentStatus } from '../types/Equipment';
+import type { Equipment } from '../types/Equipment';
+import { EquipmentStatus } from '../types/Equipment';
 import type { Lab } from '../types/Lab';
 import { useAuth } from '../context/AuthContext';
 
