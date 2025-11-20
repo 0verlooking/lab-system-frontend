@@ -1,15 +1,5 @@
 import http from './http';
-import type { Reservation } from '../types/Reservation';
-
-export interface ReservationCreateRequest {
-    labId: number;
-    startTime: string; // ISO date-time string
-    endTime: string; // ISO date-time string
-}
-
-export interface ReservationUpdateStatusRequest {
-    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
-}
+import type { Reservation, ReservationCreateRequest, ReservationStatus } from '../types/Reservation';
 
 export const reservationsApi = {
     getAll: async (): Promise<Reservation[]> => {
@@ -18,7 +8,12 @@ export const reservationsApi = {
     },
 
     getMy: async (): Promise<Reservation[]> => {
-        const res = await http.get<Reservation[]>('/reservations/my');
+        const res = await http.get<Reservation[]>('/reservations/me');
+        return res.data;
+    },
+
+    getPending: async (): Promise<Reservation[]> => {
+        const res = await http.get<Reservation[]>('/reservations/pending');
         return res.data;
     },
 
@@ -27,8 +22,18 @@ export const reservationsApi = {
         return res.data;
     },
 
-    updateStatus: async (id: number, status: string): Promise<Reservation> => {
-        const res = await http.put<Reservation>(`/reservations/${id}/status`, { status });
+    approve: async (id: number): Promise<Reservation> => {
+        const res = await http.post<Reservation>(`/reservations/${id}/approve`);
+        return res.data;
+    },
+
+    reject: async (id: number): Promise<Reservation> => {
+        const res = await http.post<Reservation>(`/reservations/${id}/reject`);
+        return res.data;
+    },
+
+    updateStatus: async (id: number, reservationId: number, status: ReservationStatus): Promise<Reservation> => {
+        const res = await http.patch<Reservation>(`/reservations/${id}/status`, { reservationId, status });
         return res.data;
     },
 

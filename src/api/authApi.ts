@@ -8,8 +8,7 @@ export interface LoginRequest {
 export interface RegisterRequest {
     username: string;
     password: string;
-    email: string;
-    role?: 'STUDENT' | 'ADMIN';
+    role?: 'STUDENT' | 'ADMIN' | 'LAB_MANAGER';
 }
 
 export interface AuthResponse {

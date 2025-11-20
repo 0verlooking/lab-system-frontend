@@ -5,6 +5,7 @@ import { RegisterPage } from '../pages/RegisterPage';
 import { LabsPage } from '../pages/LabsPage';
 import { EquipmentPage } from '../pages/EquipmentPage';
 import { ReservationsPage } from '../pages/ReservationsPage';
+import { LabWorksPage } from '../pages/LabWorksPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { PrivateRoute } from '../components/routing/PrivateRoute';
 
@@ -37,6 +38,15 @@ export const AppRouter: React.FC = () => {
                 element={
                     <PrivateRoute>
                         <ReservationsPage />
+                    </PrivateRoute>
+                }
+            />
+
+            <Route
+                path="/labworks"
+                element={
+                    <PrivateRoute>
+                        <LabWorksPage />
                     </PrivateRoute>
                 }
             />
