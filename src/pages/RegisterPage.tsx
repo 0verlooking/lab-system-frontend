@@ -7,7 +7,6 @@ export const RegisterPage: React.FC = () => {
     const navigate = useNavigate();
     const { login } = useAuth();
     const [username, setUsername] = useState('');
-    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
@@ -32,9 +31,7 @@ export const RegisterPage: React.FC = () => {
         try {
             const response = await authApi.register({
                 username,
-                email,
                 password,
-                role: 'STUDENT',
             });
             login(response.token, response.role);
             navigate('/labs');
@@ -66,21 +63,11 @@ export const RegisterPage: React.FC = () => {
                             className="form-input"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            placeholder="Введіть імʼя користувача"
+                            placeholder="Введіть імʼя користувача (мінімум 3 символи)"
+                            minLength={3}
+                            maxLength={50}
                             required
                             autoFocus
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label className="form-label">Email</label>
-                        <input
-                            type="email"
-                            className="form-input"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Введіть email"
-                            required
                         />
                     </div>
 
@@ -92,6 +79,7 @@ export const RegisterPage: React.FC = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Введіть пароль (мінімум 6 символів)"
+                            minLength={6}
                             required
                         />
                     </div>

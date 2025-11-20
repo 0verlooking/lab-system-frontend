@@ -1,32 +1,45 @@
 import React, { useEffect, useState } from 'react';
 import { reservationsApi } from '../api/reservationsApi';
 import { labsApi } from '../api/labsApi';
-import type { Reservation } from '../types/Reservation';
+import { equipmentApi } from '../api/equipmentApi';
+import { labWorksApi } from '../api/labWorksApi';
+import { Reservation, ReservationStatus } from '../types/Reservation';
 import type { Lab } from '../types/Lab';
+import type { Equipment } from '../types/Equipment';
+import type { LabWork } from '../types/LabWork';
 import { useAuth } from '../context/AuthContext';
 
 export const ReservationsPage: React.FC = () => {
     const { role } = useAuth();
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [labs, setLabs] = useState<Lab[]>([]);
+    const [equipment, setEquipment] = useState<Equipment[]>([]);
+    const [labWorks, setLabWorks] = useState<LabWork[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showForm, setShowForm] = useState(false);
 
     // Form state
     const [labId, setLabId] = useState('');
+    const [labWorkId, setLabWorkId] = useState('');
+    const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<number[]>([]);
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
+    const [purpose, setPurpose] = useState('');
 
     const loadData = async () => {
         try {
             setLoading(true);
-            const [reservationsData, labsData] = await Promise.all([
+            const [reservationsData, labsData, equipmentData, labWorksData] = await Promise.all([
                 role === 'ADMIN' ? reservationsApi.getAll() : reservationsApi.getMy(),
                 labsApi.getAll(),
+                equipmentApi.getAll(),
+                labWorksApi.getPublished(),
             ]);
             setReservations(reservationsData);
             setLabs(labsData);
+            setEquipment(equipmentData);
+            setLabWorks(labWorksData);
             setError('');
         } catch (err: any) {
             setError('Помилка завантаження даних');
@@ -42,8 +55,11 @@ export const ReservationsPage: React.FC = () => {
 
     const resetForm = () => {
         setLabId('');
+        setLabWorkId('');
+        setSelectedEquipmentIds([]);
         setStartTime('');
         setEndTime('');
+        setPurpose('');
         setShowForm(false);
     };
 
@@ -51,11 +67,19 @@ export const ReservationsPage: React.FC = () => {
         e.preventDefault();
         setError('');
 
+        if (!labId) {
+            setError('Будь ласка, оберіть лабораторію');
+            return;
+        }
+
         try {
             await reservationsApi.create({
                 labId: parseInt(labId),
+                labWorkId: labWorkId ? parseInt(labWorkId) : undefined,
+                equipmentIds: selectedEquipmentIds,
                 startTime,
                 endTime,
+                purpose: purpose || undefined,
             });
 
             await loadData();
@@ -65,17 +89,26 @@ export const ReservationsPage: React.FC = () => {
         }
     };
 
-    const handleUpdateStatus = async (id: number, status: string) => {
+    const handleApprove = async (id: number) => {
         try {
-            await reservationsApi.updateStatus(id, status);
+            await reservationsApi.approve(id);
             await loadData();
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Помилка оновлення статусу');
+            setError(err.response?.data?.message || 'Помилка підтвердження резервації');
+        }
+    };
+
+    const handleReject = async (id: number) => {
+        try {
+            await reservationsApi.reject(id);
+            await loadData();
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Помилка відхилення резервації');
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Ви впевнені, що хочете скасувати цю резервацію?')) {
+        if (!confirm('Ви впевнені, що хочете видалити цю резервацію?')) {
             return;
         }
 
@@ -87,27 +120,44 @@ export const ReservationsPage: React.FC = () => {
         }
     };
 
-    const getStatusBadgeClass = (status: string) => {
+    const getStatusBadgeClass = (status: ReservationStatus) => {
         switch (status) {
-            case 'APPROVED':
+            case ReservationStatus.APPROVED:
                 return 'badge badge-approved';
-            case 'PENDING':
+            case ReservationStatus.PENDING:
                 return 'badge badge-pending';
-            case 'REJECTED':
-            case 'CANCELLED':
+            case ReservationStatus.REJECTED:
                 return 'badge badge-rejected';
+            case ReservationStatus.CANCELLED:
+                return 'badge badge-danger';
             default:
                 return 'badge';
         }
     };
 
-    const getLabName = (labId: number) => {
-        const lab = labs.find((l) => l.id === labId);
-        return lab ? lab.name : `Lab #${labId}`;
+    const getStatusLabel = (status: ReservationStatus) => {
+        switch (status) {
+            case ReservationStatus.APPROVED:
+                return 'Підтверджено';
+            case ReservationStatus.PENDING:
+                return 'Очікує';
+            case ReservationStatus.REJECTED:
+                return 'Відхилено';
+            case ReservationStatus.CANCELLED:
+                return 'Скасовано';
+            default:
+                return status;
+        }
     };
 
     const formatDateTime = (dateTime: string) => {
-        return new Date(dateTime).toLocaleString('uk-UA');
+        return new Date(dateTime).toLocaleString('uk-UA', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
     };
 
     const isAdmin = role === 'ADMIN';
@@ -117,6 +167,17 @@ export const ReservationsPage: React.FC = () => {
         const now = new Date();
         now.setHours(now.getHours() + 1);
         return now.toISOString().slice(0, 16);
+    };
+
+    // Filter equipment by selected lab
+    const availableEquipment = equipment.filter(
+        (eq) => !labId || eq.labId === parseInt(labId)
+    );
+
+    const toggleEquipment = (eqId: number) => {
+        setSelectedEquipmentIds((prev) =>
+            prev.includes(eqId) ? prev.filter((id) => id !== eqId) : [...prev, eqId]
+        );
     };
 
     return (
@@ -148,11 +209,14 @@ export const ReservationsPage: React.FC = () => {
                     <h2 className="card-header">Нова резервація</h2>
                     <form onSubmit={handleSubmit} className="form">
                         <div className="form-group">
-                            <label className="form-label">Лабораторія</label>
+                            <label className="form-label">Лабораторія*</label>
                             <select
                                 className="form-select"
                                 value={labId}
-                                onChange={(e) => setLabId(e.target.value)}
+                                onChange={(e) => {
+                                    setLabId(e.target.value);
+                                    setSelectedEquipmentIds([]);
+                                }}
                                 required
                             >
                                 <option value="">Оберіть лабораторію</option>
@@ -165,7 +229,44 @@ export const ReservationsPage: React.FC = () => {
                         </div>
 
                         <div className="form-group">
-                            <label className="form-label">Час початку</label>
+                            <label className="form-label">Лабораторна робота (опціонально)</label>
+                            <select
+                                className="form-select"
+                                value={labWorkId}
+                                onChange={(e) => setLabWorkId(e.target.value)}
+                            >
+                                <option value="">Не вибрано</option>
+                                {labWorks.map((work) => (
+                                    <option key={work.id} value={work.id}>
+                                        {work.title}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {labId && availableEquipment.length > 0 && (
+                            <div className="form-group">
+                                <label className="form-label">Обладнання</label>
+                                <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.75rem' }}>
+                                    {availableEquipment.map((eq) => (
+                                        <div key={eq.id} style={{ marginBottom: '0.5rem' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedEquipmentIds.includes(eq.id)}
+                                                    onChange={() => toggleEquipment(eq.id)}
+                                                    style={{ marginRight: '0.5rem' }}
+                                                />
+                                                <span>{eq.name} ({eq.inventoryNumber}) - {eq.status}</span>
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="form-group">
+                            <label className="form-label">Час початку*</label>
                             <input
                                 type="datetime-local"
                                 className="form-input"
@@ -177,7 +278,7 @@ export const ReservationsPage: React.FC = () => {
                         </div>
 
                         <div className="form-group">
-                            <label className="form-label">Час завершення</label>
+                            <label className="form-label">Час завершення*</label>
                             <input
                                 type="datetime-local"
                                 className="form-input"
@@ -185,6 +286,17 @@ export const ReservationsPage: React.FC = () => {
                                 onChange={(e) => setEndTime(e.target.value)}
                                 min={startTime || getMinDateTime()}
                                 required
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Мета використання (опціонально)</label>
+                            <textarea
+                                className="form-input"
+                                value={purpose}
+                                onChange={(e) => setPurpose(e.target.value)}
+                                rows={3}
+                                placeholder="Опишіть мету використання лабораторії..."
                             />
                         </div>
 
@@ -225,10 +337,13 @@ export const ReservationsPage: React.FC = () => {
                             <tr>
                                 <th>ID</th>
                                 <th>Лабораторія</th>
-                                {isAdmin && <th>Користувач ID</th>}
+                                {isAdmin && <th>Користувач</th>}
+                                <th>Лаб. робота</th>
+                                <th>Обладнання</th>
                                 <th>Початок</th>
                                 <th>Завершення</th>
                                 <th>Статус</th>
+                                {isAdmin && <th>Підтверджено</th>}
                                 <th>Дії</th>
                             </tr>
                         </thead>
@@ -236,44 +351,57 @@ export const ReservationsPage: React.FC = () => {
                             {reservations.map((reservation) => (
                                 <tr key={reservation.id}>
                                     <td>{reservation.id}</td>
-                                    <td>{getLabName(reservation.labId)}</td>
-                                    {isAdmin && <td>{reservation.userId}</td>}
+                                    <td>{reservation.labName}</td>
+                                    {isAdmin && <td>{reservation.username}</td>}
+                                    <td>{reservation.labWorkTitle || '-'}</td>
+                                    <td>
+                                        {reservation.equipment.length > 0 ? (
+                                            <div style={{ fontSize: '0.875rem' }}>
+                                                {reservation.equipment.map((eq) => eq.name).join(', ')}
+                                            </div>
+                                        ) : (
+                                            '-'
+                                        )}
+                                    </td>
                                     <td>{formatDateTime(reservation.startTime)}</td>
                                     <td>{formatDateTime(reservation.endTime)}</td>
                                     <td>
                                         <span className={getStatusBadgeClass(reservation.status)}>
-                                            {reservation.status === 'APPROVED'
-                                                ? 'Підтверджено'
-                                                : reservation.status === 'PENDING'
-                                                ? 'Очікує'
-                                                : reservation.status === 'REJECTED'
-                                                ? 'Відхилено'
-                                                : 'Скасовано'}
+                                            {getStatusLabel(reservation.status)}
                                         </span>
                                     </td>
+                                    {isAdmin && (
+                                        <td>
+                                            {reservation.approvedBy ? (
+                                                <div style={{ fontSize: '0.875rem' }}>
+                                                    {reservation.approvedBy}
+                                                    <br />
+                                                    {reservation.approvedAt && formatDateTime(reservation.approvedAt)}
+                                                </div>
+                                            ) : (
+                                                '-'
+                                            )}
+                                        </td>
+                                    )}
                                     <td>
                                         <div className="btn-group">
-                                            {isAdmin && reservation.status === 'PENDING' && (
+                                            {isAdmin && reservation.status === ReservationStatus.PENDING && (
                                                 <>
                                                     <button
                                                         className="btn btn-sm btn-success"
-                                                        onClick={() =>
-                                                            handleUpdateStatus(reservation.id, 'APPROVED')
-                                                        }
+                                                        onClick={() => handleApprove(reservation.id)}
                                                     >
                                                         Підтвердити
                                                     </button>
                                                     <button
                                                         className="btn btn-sm btn-danger"
-                                                        onClick={() =>
-                                                            handleUpdateStatus(reservation.id, 'REJECTED')
-                                                        }
+                                                        onClick={() => handleReject(reservation.id)}
                                                     >
                                                         Відхилити
                                                     </button>
                                                 </>
                                             )}
-                                            {!isAdmin && reservation.status === 'PENDING' && (
+                                            {!isAdmin && reservation.status === ReservationStatus.PENDING && (
                                                 <button
                                                     className="btn btn-sm btn-danger"
                                                     onClick={() => handleDelete(reservation.id)}

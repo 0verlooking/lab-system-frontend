@@ -38,6 +38,9 @@ export const Navbar: React.FC = () => {
                     <Link to="/reservations" className={isActive('/reservations')}>
                         Резервації
                     </Link>
+                    <Link to="/labworks" className={isActive('/labworks')}>
+                        Лаб. роботи
+                    </Link>
                 </div>
 
                 <div className="navbar-actions">
@@ -45,7 +48,11 @@ export const Navbar: React.FC = () => {
                         <>
                             <div className="navbar-user">
                                 <span className="navbar-role">
-                                    {role === 'ADMIN' ? 'Адміністратор' : 'Студент'}
+                                    {role === 'ADMIN'
+                                        ? 'Адміністратор'
+                                        : role === 'LAB_MANAGER'
+                                        ? 'Менеджер лабораторії'
+                                        : 'Студент'}
                                 </span>
                             </div>
                             <button className="navbar-logout" onClick={handleLogout}>

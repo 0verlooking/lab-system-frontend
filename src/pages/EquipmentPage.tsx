@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { equipmentApi } from '../api/equipmentApi';
 import { labsApi } from '../api/labsApi';
-import type { Equipment } from '../types/Equipment';
+import { Equipment, EquipmentStatus } from '../types/Equipment';
 import type { Lab } from '../types/Lab';
 import { useAuth } from '../context/AuthContext';
 
@@ -16,7 +16,7 @@ export const EquipmentPage: React.FC = () => {
     // Form state
     const [name, setName] = useState('');
     const [inventoryNumber, setInventoryNumber] = useState('');
-    const [status, setStatus] = useState('AVAILABLE');
+    const [status, setStatus] = useState<EquipmentStatus>(EquipmentStatus.AVAILABLE);
     const [labId, setLabId] = useState('');
     const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -45,7 +45,7 @@ export const EquipmentPage: React.FC = () => {
     const resetForm = () => {
         setName('');
         setInventoryNumber('');
-        setStatus('AVAILABLE');
+        setStatus(EquipmentStatus.AVAILABLE);
         setLabId('');
         setEditingId(null);
         setShowForm(false);
@@ -55,12 +55,17 @@ export const EquipmentPage: React.FC = () => {
         e.preventDefault();
         setError('');
 
+        if (!labId) {
+            setError('Будь ласка, оберіть лабораторію');
+            return;
+        }
+
         try {
             const equipmentData = {
                 name,
                 inventoryNumber,
                 status,
-                labId: labId ? parseInt(labId) : undefined,
+                labId: parseInt(labId),
             };
 
             if (editingId) {
@@ -80,7 +85,7 @@ export const EquipmentPage: React.FC = () => {
         setName(item.name);
         setInventoryNumber(item.inventoryNumber);
         setStatus(item.status);
-        setLabId(item.labId?.toString() || '');
+        setLabId(item.labId.toString());
         setEditingId(item.id);
         setShowForm(true);
     };
@@ -98,23 +103,34 @@ export const EquipmentPage: React.FC = () => {
         }
     };
 
-    const getStatusBadgeClass = (status: string) => {
+    const getStatusBadgeClass = (status: EquipmentStatus) => {
         switch (status) {
-            case 'AVAILABLE':
+            case EquipmentStatus.AVAILABLE:
                 return 'badge badge-available';
-            case 'IN_USE':
+            case EquipmentStatus.IN_USE:
                 return 'badge badge-in-use';
-            case 'MAINTENANCE':
+            case EquipmentStatus.MAINTENANCE:
                 return 'badge badge-maintenance';
+            case EquipmentStatus.BROKEN:
+                return 'badge badge-danger';
             default:
                 return 'badge';
         }
     };
 
-    const getLabName = (labId?: number) => {
-        if (!labId) return '-';
-        const lab = labs.find((l) => l.id === labId);
-        return lab ? lab.name : `Lab #${labId}`;
+    const getStatusLabel = (status: EquipmentStatus) => {
+        switch (status) {
+            case EquipmentStatus.AVAILABLE:
+                return 'Доступне';
+            case EquipmentStatus.IN_USE:
+                return 'Використовується';
+            case EquipmentStatus.MAINTENANCE:
+                return 'На обслуговуванні';
+            case EquipmentStatus.BROKEN:
+                return 'Зламане';
+            default:
+                return status;
+        }
     };
 
     const isAdmin = role === 'ADMIN';
@@ -178,12 +194,13 @@ export const EquipmentPage: React.FC = () => {
                             <select
                                 className="form-select"
                                 value={status}
-                                onChange={(e) => setStatus(e.target.value)}
+                                onChange={(e) => setStatus(e.target.value as EquipmentStatus)}
                                 required
                             >
-                                <option value="AVAILABLE">Доступне</option>
-                                <option value="IN_USE">Використовується</option>
-                                <option value="MAINTENANCE">На обслуговуванні</option>
+                                <option value={EquipmentStatus.AVAILABLE}>Доступне</option>
+                                <option value={EquipmentStatus.IN_USE}>Використовується</option>
+                                <option value={EquipmentStatus.MAINTENANCE}>На обслуговуванні</option>
+                                <option value={EquipmentStatus.BROKEN}>Зламане</option>
                             </select>
                         </div>
 
@@ -193,8 +210,9 @@ export const EquipmentPage: React.FC = () => {
                                 className="form-select"
                                 value={labId}
                                 onChange={(e) => setLabId(e.target.value)}
+                                required
                             >
-                                <option value="">Не призначено</option>
+                                <option value="">Оберіть лабораторію</option>
                                 {labs.map((lab) => (
                                     <option key={lab.id} value={lab.id}>
                                         {lab.name}
@@ -254,14 +272,10 @@ export const EquipmentPage: React.FC = () => {
                                     <td>{item.inventoryNumber}</td>
                                     <td>
                                         <span className={getStatusBadgeClass(item.status)}>
-                                            {item.status === 'AVAILABLE'
-                                                ? 'Доступне'
-                                                : item.status === 'IN_USE'
-                                                ? 'Використовується'
-                                                : 'На обслуговуванні'}
+                                            {getStatusLabel(item.status)}
                                         </span>
                                     </td>
-                                    <td>{getLabName(item.labId)}</td>
+                                    <td>{item.labName}</td>
                                     {isAdmin && (
                                         <td>
                                             <div className="btn-group">
