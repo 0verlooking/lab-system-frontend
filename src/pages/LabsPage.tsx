@@ -65,7 +65,7 @@ export const LabsPage: React.FC = () => {
             await loadLabs();
             resetForm();
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Помилка збереження лабораторії');
+            setError(err.message || 'Помилка збереження лабораторії');
         }
     };
 
@@ -87,7 +87,7 @@ export const LabsPage: React.FC = () => {
             await labsApi.delete(id);
             await loadLabs();
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Помилка видалення лабораторії');
+            setError(err.message || 'Помилка видалення лабораторії');
         }
     };
 

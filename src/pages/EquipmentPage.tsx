@@ -78,7 +78,7 @@ export const EquipmentPage: React.FC = () => {
             await loadData();
             resetForm();
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Помилка збереження обладнання');
+            setError(err.message || 'Помилка збереження обладнання');
         }
     };
 
@@ -100,7 +100,7 @@ export const EquipmentPage: React.FC = () => {
             await equipmentApi.delete(id);
             await loadData();
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Помилка видалення обладнання');
+            setError(err.message || 'Помилка видалення обладнання');
         }
     };
 
