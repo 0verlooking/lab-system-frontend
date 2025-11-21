@@ -86,7 +86,7 @@ export const ReservationsPage: React.FC = () => {
             await loadData();
             resetForm();
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Помилка створення резервації');
+            setError(err.message || 'Помилка створення резервації');
         }
     };
 
@@ -95,7 +95,7 @@ export const ReservationsPage: React.FC = () => {
             await reservationsApi.approve(id);
             await loadData();
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Помилка підтвердження резервації');
+            setError(err.message || 'Помилка підтвердження резервації');
         }
     };
 
@@ -104,7 +104,7 @@ export const ReservationsPage: React.FC = () => {
             await reservationsApi.reject(id);
             await loadData();
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Помилка відхилення резервації');
+            setError(err.message || 'Помилка відхилення резервації');
         }
     };
 
@@ -117,7 +117,7 @@ export const ReservationsPage: React.FC = () => {
             await reservationsApi.delete(id);
             await loadData();
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Помилка видалення резервації');
+            setError(err.message || 'Помилка видалення резервації');
         }
     };
 

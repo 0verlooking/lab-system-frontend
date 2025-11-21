@@ -21,7 +21,7 @@ export const LoginPage: React.FC = () => {
             login(response.token, response.role);
             navigate('/labs');
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Невірний логін або пароль');
+            setError(err.message || 'Невірний логін або пароль');
         } finally {
             setLoading(false);
         }

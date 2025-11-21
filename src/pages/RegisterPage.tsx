@@ -36,7 +36,7 @@ export const RegisterPage: React.FC = () => {
             login(response.token, response.role);
             navigate('/labs');
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Помилка реєстрації. Спробуйте інше імʼя користувача.');
+            setError(err.message || 'Помилка реєстрації. Спробуйте інше імʼя користувача.');
         } finally {
             setLoading(false);
         }
